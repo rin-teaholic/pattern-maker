@@ -1,122 +1,62 @@
-import { useState } from 'react'
-import heroImg from './assets/hero.png'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import './App.css'
+import { useEffect, useRef } from "react";
+import paper from "paper";
 
-function App() {
-  const [count, setCount] = useState(0)
+export default function App() {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+
+  useEffect(() => {
+    if (!canvasRef.current) return;
+
+    // Paper.jsの初期化（キャンバスをセット）
+    paper.setup(canvasRef.current);
+
+    // 画面の中心を取得
+    const center = paper.view.center;
+
+    // --- ここから描画ロジック ---
+
+    // 1cm を 37.8ピクセル（96dpiの場合）として計算
+    const cm = 37.8;
+    const width = 10 * cm;  // 10cm
+    const height = 10 * cm; // 10cm
+    const seamAllowance = 0.5 * cm; // 縫い代 5mm
+
+    // ①できあがり線（実線）の四角形を作成
+    const baseRect = new paper.Path.Rectangle({
+      point: [center.x - width / 2, center.y - height / 2],
+      size: [width, height],
+      strokeColor: new paper.Color("black"),
+      strokeWidth: 2,
+    });
+
+    // ②縫い代線（点線）を作成
+    const seamRect = baseRect.clone() as paper.Path;
+    seamRect.scale(
+      (width + seamAllowance * 2) / width,
+      (height + seamAllowance * 2) / height
+    );
+    seamRect.strokeColor = new paper.Color("red");
+    seamRect.strokeWidth = 1;
+    seamRect.dashArray = [5, 5]; // 5px引いて5px空ける点線
+
+    // 描画を更新（update() を使用）
+    paper.view?.update();
+  }, []);
 
   return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
-        </div>
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.tsx</code> and save to test <code>HMR</code>
-          </p>
-        </div>
-        <button
-          type="button"
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
-      </section>
-
-      <div className="ticks"></div>
-
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
-        </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
-
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
-  )
+    <div style={{ padding: "20px", textAlign: "center", fontFamily: "sans-serif" }}>
+      <h1>型紙メーカー（試作）</h1>
+      <p>黒の実線ができあがり線(10cm)、赤の点線が縫い代(5mm)</p>
+      
+      {/* 描画エリア */}
+      <div style={{ border: "1px solid #ccc", display: "inline-block", marginTop: "10px" }}>
+        <canvas
+          ref={canvasRef}
+          width={600}
+          height={600}
+          style={{ width: "600px", height: "600px", backgroundColor: "#fafafa" }}
+        />
+      </div>
+    </div>
+  );
 }
-
-export default App
