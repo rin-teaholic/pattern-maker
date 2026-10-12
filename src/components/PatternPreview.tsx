@@ -33,18 +33,22 @@ export const PatternPreview: React.FC<Props> = ({ patternData, svgRef }) => {
           <line key={idx} x1={line.x1} y1={line.y1} x2={line.x2} y2={line.y2} stroke="gray" strokeWidth="0.2" strokeDasharray="1, 1" />
         ))}
 
-        {/* 🔴 わ裁断の記号 (◎の半分 / 二重半円) */}
+        {/* わ裁断の記号 (◎の半分) */}
         {waPath && (
           <path d={waPath} fill="none" stroke="black" strokeWidth="0.25" />
         )}
 
-        {/* できあがり線 */}
-        <path d={basePath} fill="none" stroke="black" strokeWidth="0.25" />
+        {/* できあがり線 (黒実線) */}
+        {basePath && (
+          <path d={basePath} fill="none" stroke="black" strokeWidth="0.25" />
+        )}
 
-        {/* 縫い代線 */}
-        <path d={seamPath} fill="none" stroke="red" strokeWidth="0.25" strokeDasharray="1, 1" />
+        {/* 縫い代線 (赤点線) */}
+        {seamPath && (
+          <path d={seamPath} fill="none" stroke="red" strokeWidth="0.25" strokeDasharray="1, 1" />
+        )}
 
-        {/* 地の目線 */}
+        {/* 地の目線 (青矢印) */}
         {grainline && (
           <line
             x1={grainline.x1}

@@ -2,20 +2,34 @@ import { useState, useRef } from "react";
 import type { PatternType } from "./types/doll";
 import { DOLL_PRESETS } from "./constants/dollPresets";
 import { generatePatternData } from "./utils/patternGenerator";
-import { exportPatternToPDF } from "./utils/pdfExporter";
+import { exportFullPatternToPDF } from "./utils/pdfExporter";
 import { PatternPreview } from "./components/PatternPreview";
 
 export default function App() {
   const [selectedDollKey, setSelectedDollKey] = useState<string>("dollA");
   const [patternType, setPatternType] = useState<PatternType>("front");
+  const [isDownloading, setIsDownloading] = useState<boolean>(false);
   const svgRef = useRef<SVGSVGElement>(null);
 
   const size = DOLL_PRESETS[selectedDollKey];
   const patternData = generatePatternData(size, patternType);
+  
+  const isTops = patternType !== "pants";
 
   const handleDownloadPDF = async () => {
-    if (!svgRef.current) return;
-    await exportPatternToPDF(svgRef.current, `pattern-${selectedDollKey}-${patternType}.pdf`);
+    setIsDownloading(true);
+    try {
+      await exportFullPatternToPDF(
+        size, 
+        isTops, 
+        `pattern-${selectedDollKey}-${isTops ? "tops-all" : "pants"}.pdf`
+      );
+    } catch (error) {
+      console.error("PDF生成エラー:", error);
+      alert("PDFの生成中にエラーが発生しました。");
+    } finally {
+      setIsDownloading(false);
+    }
   };
 
   return (
@@ -37,14 +51,13 @@ export default function App() {
         </div>
 
         <div>
-          <label style={{ fontWeight: "bold", marginRight: "5px" }}>パーツ:</label>
+          <label style={{ fontWeight: "bold", marginRight: "5px" }}>パーツ(プレビュー用):</label>
           <select
             value={patternType}
             onChange={(e) => setPatternType(e.target.value as PatternType)}
             style={{ padding: "8px", fontSize: "15px" }}
           >
             <option value="front">前身頃 (トップス)</option>
-            {/* 🔴 後身頃の選択肢を分割 */}
             <option value="back_left">後身頃・左 (持ち出しあり)</option>
             <option value="back_right">後身頃・右 (持ち出しなし)</option>
             <option value="sleeve">袖 (トップス)</option>
@@ -55,19 +68,23 @@ export default function App() {
 
       <button
         onClick={handleDownloadPDF}
+        disabled={isDownloading}
         style={{
           padding: "10px 20px",
           fontSize: "16px",
-          backgroundColor: "#28a745",
+          backgroundColor: isDownloading ? "#6c757d" : "#28a745",
           color: "white",
           border: "none",
           borderRadius: "5px",
-          cursor: "pointer",
+          cursor: isDownloading ? "not-allowed" : "pointer",
           marginBottom: "15px",
-          fontWeight: "bold"
+          fontWeight: "bold",
+          transition: "background-color 0.3s"
         }}
       >
-        A4実寸PDFをダウンロード
+        {isDownloading 
+          ? "PDF生成中..." 
+          : isTops ? "トップスの全パーツ(A4)をダウンロード" : "パンツの型紙(A4)をダウンロード"}
       </button>
 
       <br />
