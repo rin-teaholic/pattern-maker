@@ -1,4 +1,4 @@
-import type { DollSize, PatternType, PatternData } from "../types/doll";
+import type { DollSize, PatternType, PatternData, TextLabel, LineSegment } from "../types/doll";
 
 export function generatePatternData(size: DollSize, patternType: PatternType): PatternData {
   const sa = 5; // 縫い代 5mm
@@ -6,16 +6,25 @@ export function generatePatternData(size: DollSize, patternType: PatternType): P
 
   let basePath = "";
   let seamPath = "";
-  let labelText: string | undefined;
-  let labelY: number | undefined;
   let bounds = { minX: -20, minY: -20, width: 100, height: 100 };
+  const labels: TextLabel[] = [];
+  const notches: LineSegment[] = [];
+  const guideLines: LineSegment[] = [];
+  let grainline: LineSegment | undefined;
+  let waPath: string | undefined;
 
-  if (patternType === "front" || patternType === "back") {
-    const neckD = patternType === "front" ? size.neckDFront : size.neckDBack;
+  // ==========================================
+  // 前身頃 / 後身頃 (左・右)
+  // ==========================================
+  if (patternType === "front" || patternType === "back_left" || patternType === "back_right") {
+    const isFront = patternType === "front";
+    const neckD = isFront ? size.neckDFront : size.neckDBack;
+    
+    const overlap = patternType === "back_left" ? 5 : 0;
 
     basePath = `
-      M 0 ${size.length}
-      L 0 ${neckD}
+      M ${-overlap} ${size.length}
+      L ${-overlap} ${neckD}
       C ${size.neckW * 0.5} ${neckD}, ${size.neckW} ${neckD * 0.3}, ${size.neckW} 0
       L ${size.shoulderW} 5
       C ${size.shoulderW + 2} ${size.armholeD * 0.5}, ${halfChest - 2} ${size.armholeD * 0.8}, ${halfChest} ${size.armholeD}
@@ -24,25 +33,72 @@ export function generatePatternData(size: DollSize, patternType: PatternType): P
     `;
 
     seamPath = `
-      M 0 ${size.length + sa}
-      L 0 ${neckD - sa}
+      M ${-overlap - (isFront ? 0 : sa)} ${size.length + sa}
+      L ${-overlap - (isFront ? 0 : sa)} ${neckD - sa}
       C ${size.neckW * 0.5} ${neckD - sa}, ${size.neckW} ${-sa}, ${size.neckW} ${-sa}
       L ${size.shoulderW + 3} ${5 - 3}
       C ${size.shoulderW + 5} ${size.armholeD * 0.5}, ${halfChest + 3} ${size.armholeD * 0.8}, ${halfChest + sa} ${size.armholeD}
       L ${halfChest + sa} ${size.length + sa}
-      L 0 ${size.length + sa}
+      L ${-overlap - (isFront ? 0 : sa)} ${size.length + sa}
     `;
 
-    labelText = `← わ (${patternType === "front" ? "前中心" : "後中心"})`;
-    labelY = size.length / 2;
+    let partName = "前身頃";
+    let countText = "× 1枚 (わ裁断)";
+    if (patternType === "back_left") {
+      partName = "後身頃 (左)";
+      countText = "× 1枚 (持ち出しあり)";
+    } else if (patternType === "back_right") {
+      partName = "後身頃 (右)";
+      countText = "× 1枚 (持ち出しなし)";
+    }
+
+    labels.push(
+      { text: partName, x: halfChest / 2, y: size.length / 2 - 3, fontSize: 3.5, anchor: "middle" },
+      { text: countText, x: halfChest / 2, y: size.length / 2 + 1, fontSize: 2.5, anchor: "middle" },
+      // 🔴 親切表記: 縫い代幅
+      { text: "※周囲 縫い代5mm", x: halfChest / 2, y: size.length / 2 + 4, fontSize: 1.8, anchor: "middle" }
+    );
+
+    if (isFront) {
+      const centerY = (neckD + size.length) / 2;
+      waPath = `
+        M 0 ${centerY - 4} A 4 4 0 0 1 0 ${centerY + 4}
+        M 0 ${centerY - 2.5} A 2.5 2.5 0 0 1 0 ${centerY + 2.5}
+      `;
+      labels.push({ text: "わ (前中心)", x: 7, y: centerY, fontSize: 2.5, rotate: 90, anchor: "middle" });
+      
+      notches.push(
+        { x1: 0, y1: neckD, x2: 0, y2: neckD - sa },
+        { x1: 0, y1: size.length, x2: 0, y2: size.length + sa }
+      );
+    } else {
+      guideLines.push({ x1: 0, y1: neckD, x2: 0, y2: size.length });
+      // 🔴 「後中心」を「背中心」に変更
+      labels.push({ text: "背中心", x: 2, y: (size.length + neckD) / 2, fontSize: 2.5, rotate: -90, anchor: "middle" });
+      if (patternType === "back_left") {
+        labels.push({ text: "持ち出し 5mm", x: -overlap / 2, y: (size.length + neckD) / 2, fontSize: 2.2, rotate: -90, anchor: "middle" });
+      }
+    }
+
+    grainline = {
+      x1: halfChest * 0.7,
+      y1: 10,
+      x2: halfChest * 0.7,
+      y2: size.length - 5,
+    };
 
     bounds = {
-      minX: -25,
+      minX: -overlap - sa - 20,
       minY: -sa - 5,
-      width: halfChest + sa + 35,
+      width: halfChest + sa + overlap + 35,
       height: size.length + sa + 15,
     };
-  } else if (patternType === "sleeve") {
+
+  } 
+  // ==========================================
+  // 袖 (Sleeve)
+  // ==========================================
+  else if (patternType === "sleeve") {
     const sleeveW = size.armholeD * 0.8;
     const sLen = size.sleeveLength;
     const cuff = size.cuffWidth;
@@ -67,14 +123,25 @@ export function generatePatternData(size: DollSize, patternType: PatternType): P
       Z
     `;
 
+    labels.push(
+      { text: "袖", x: 0, y: sLen / 2 - 3, fontSize: 3.5, anchor: "middle" },
+      { text: "× 2枚 (左右対称)", x: 0, y: sLen / 2 + 1, fontSize: 2.5, anchor: "middle" },
+      { text: "※周囲 縫い代5mm", x: 0, y: sLen / 2 + 4, fontSize: 1.8, anchor: "middle" },
+      // 🔴 袖山の合印の説明
+      { text: "肩線へ", x: 4, y: -2, fontSize: 2, anchor: "start" }
+    );
+
+    grainline = { x1: sleeveW * 0.4, y1: size.armholeD * 0.2, x2: sleeveW * 0.4, y2: sLen - 3 };
+    notches.push({ x1: 0, y1: 0, x2: 0, y2: -sa });
+
     const maxW = Math.max(sleeveW, cuff / 2) + sa + 10;
-    bounds = {
-      minX: -maxW,
-      minY: -sa - 5,
-      width: maxW * 2,
-      height: sLen + sa + 15,
-    };
-  } else if (patternType === "pants") {
+    bounds = { minX: -maxW, minY: -sa - 10, width: maxW * 2, height: sLen + sa + 20 };
+
+  } 
+  // ==========================================
+  // パンツ (Pants)
+  // ==========================================
+  else if (patternType === "pants") {
     const waist = size.chestWidth / 4;
     const crotch = size.crotchDepth;
     const totalLen = size.crotchDepth + size.inseam;
@@ -100,15 +167,21 @@ export function generatePatternData(size: DollSize, patternType: PatternType): P
       Z
     `;
 
+    labels.push(
+      { text: "パンツ", x: waist / 2, y: totalLen / 2 - 4, fontSize: 3.5, anchor: "middle" },
+      { text: "× 2枚 (左右対称)", x: waist / 2, y: totalLen / 2, fontSize: 2.5, anchor: "middle" },
+      // 🔴 前後がないパンツであることを明記
+      { text: "(前後同型)", x: waist / 2, y: totalLen / 2 + 3, fontSize: 2, anchor: "middle" },
+      { text: "※周囲 縫い代5mm", x: waist / 2, y: totalLen / 2 + 6, fontSize: 1.8, anchor: "middle" }
+    );
+
+    grainline = { x1: waist / 2, y1: 8, x2: waist / 2, y2: totalLen - 5 };
+    notches.push({ x1: 0, y1: 0, x2: 0, y2: -sa });
+
     const minXVal = Math.min(-hem + waist, -sa) - 10;
     const maxXVal = Math.max(waist + 5 + sa, hem + sa) + 10;
-    bounds = {
-      minX: minXVal,
-      minY: -sa - 5,
-      width: maxXVal - minXVal,
-      height: totalLen + sa + 15,
-    };
+    bounds = { minX: minXVal, minY: -sa - 5, width: maxXVal - minXVal, height: totalLen + sa + 15 };
   }
 
-  return { basePath, seamPath, bounds, labelText, labelY };
+  return { basePath, seamPath, bounds, labels, grainline, notches, guideLines, waPath };
 }

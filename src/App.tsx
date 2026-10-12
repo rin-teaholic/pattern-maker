@@ -22,7 +22,6 @@ export default function App() {
     <div style={{ padding: "20px", textAlign: "center", fontFamily: "sans-serif" }}>
       <h1>型紙メーカー (複数パーツ対応)</h1>
 
-      {/* コントロールエリア */}
       <div style={{ marginBottom: "15px", display: "flex", justifyContent: "center", gap: "15px", flexWrap: "wrap" }}>
         <div>
           <label style={{ fontWeight: "bold", marginRight: "5px" }}>サイズ:</label>
@@ -45,7 +44,9 @@ export default function App() {
             style={{ padding: "8px", fontSize: "15px" }}
           >
             <option value="front">前身頃 (トップス)</option>
-            <option value="back">後身頃 (トップス)</option>
+            {/* 🔴 後身頃の選択肢を分割 */}
+            <option value="back_left">後身頃・左 (持ち出しあり)</option>
+            <option value="back_right">後身頃・右 (持ち出しなし)</option>
             <option value="sleeve">袖 (トップス)</option>
             <option value="pants">パンツ (ボトムス)</option>
           </select>
@@ -70,8 +71,6 @@ export default function App() {
       </button>
 
       <br />
-
-      {/* プレビューコンポーネント */}
       <PatternPreview patternData={patternData} svgRef={svgRef} />
     </div>
   );
